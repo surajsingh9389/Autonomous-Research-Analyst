@@ -2,7 +2,7 @@ import asyncio
 from typing import List, Literal, TypedDict
 from langgraph.graph import StateGraph, START, END
 from hybrid_search_with_reranking import get_hybrid_reranked_docs
-from build_prompt import generator_prompt, evaluator_prompt
+from build_prompt import generator_prompt, evaluator_prompt, refiner_prompt
 from generator import generateAnswer
 from evaluator import evaluate_answer
 import json
@@ -48,7 +48,6 @@ async def retriever_node(state: AgentState):
     query = state["query"]
     # We AWAIT the result here
     processed_docs = await get_hybrid_reranked_docs(query)
-    state["iteration"] += 1
     
     return {"retrieved_docs": processed_docs}
 
@@ -64,8 +63,9 @@ async def generator(state: AgentState) -> AgentState:
     
     context = "\n\n".join([f"{doc['content']} (source: {doc['source']})" for doc in docs[:TOP_K]]) 
     
-    prompt = generator_prompt(query, context)
-    answer = await generateAnswer(prompt)
+    system_prompt = "You are a helpful AI assistant that answers strictly from provided context."
+    user_prompt = generator_prompt(query, context)
+    answer = await generateAnswer(system_prompt, user_prompt)
     
     state['current_answer'] = answer
     
@@ -80,6 +80,7 @@ async def critic(state: AgentState) -> AgentState:
     Evaluates the generated answer for faithfulness to context 
     and relevance to the user query.
     """
+    state["iteration"] = state["iteration"] + 1
     
     # Extract necessary data from state
     query = state["query"]
@@ -105,6 +106,7 @@ async def critic(state: AgentState) -> AgentState:
     state["relevance_score"] = score.get("relevance_score", 0.0)
     state["feedback"] = score.get("feedback", "")
     
+    
     # Determine failure type based on scores 
     if state['faithfulness_score'] < 0.7:
         state['failure_type'] = "hallucination"
@@ -113,6 +115,35 @@ async def critic(state: AgentState) -> AgentState:
     else:
         state['failure_type'] = "good"
         
+    state["thoughts"].append(
+    f"Critic → faithfulness: {state['faithfulness_score']}, relevance: {state['relevance_score']}"
+    )
+        
+    return state
+
+async def refiner(state: AgentState) -> AgentState:
+    original_query = state["query"]
+    feedback = state.get("feedback", "")
+
+    user_prompt = f"""
+Original Query:
+{original_query}
+
+Feedback from system:
+{feedback}
+
+Improve the query for better document retrieval.
+"""
+    system_prompt = refiner_prompt()
+    improved_query = await generateAnswer(system_prompt, user_prompt)
+
+    state["refined_query"] = improved_query
+    state["query"] = improved_query  # overwrite for next loop
+
+    state.setdefault("thoughts", []).append(
+        f"Refined query: {improved_query}"
+    )
+
     return state
 
 
@@ -124,10 +155,10 @@ def should_continue(state: AgentState):
         return "end"
     
     if state["failure_type"] == "low_relevance":
-        return "retriever"
-    
+        return "refiner"
+
     if state["failure_type"] == "hallucination":
-        return "generator"
+        return "retriever"
     
     return "retry"
 
@@ -137,20 +168,23 @@ agent_builder = StateGraph(AgentState)
 agent_builder.add_node("retriever", retriever_node)
 agent_builder.add_node("generator", generator)
 agent_builder.add_node("critic", critic)
+agent_builder.add_node("refiner", refiner)
 
 agent_builder.add_edge(START, "retriever")
 agent_builder.add_edge("retriever", "generator")
 agent_builder.add_edge("generator", "critic")
-agent_builder.add_conditional_edges("critic", should_continue, { "end": END, "retriever": "retriever", "generator": "generator"} )
+agent_builder.add_conditional_edges("critic", should_continue, { "end": END, "retriever": "retriever", "refiner": "refiner"})
+agent_builder.add_edge("refiner", "retriever")
 
 graph = agent_builder.compile()
 
 async def run_agent():
     # Use AINVOKE instead of INVOKE
     state = await graph.ainvoke({
-        "query": "What is FAISS?", 
+        "query": "Using ONLY the ai_engineering_blog source, explain the 5-step process for configuring BM25 inside a LangGraph actor.", 
         "iteration": 0, 
-        "max_iterations": 3
+        "max_iterations": 3,
+        "thoughts": []
     })
     print(state)
 

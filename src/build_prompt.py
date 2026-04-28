@@ -35,6 +35,23 @@ def evaluator_prompt() -> str:
         "relevance_score": float, 
         "feedback": str
     }
+    
+    DO NOT include any extra text.
     """
     
     return prompt.strip()
+
+def refiner_prompt():
+    return """
+You are a query optimization expert.
+
+Your job is to rewrite the user query to improve retrieval quality.
+
+Guidelines:
+- Make it more specific
+- Add missing technical keywords
+- Keep the intent same
+- Do NOT answer the query
+
+Return ONLY the improved query.
+""".strip()

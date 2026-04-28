@@ -10,11 +10,11 @@ HF_TOKEN = os.getenv("TOKEN")
 # Initialize the client with your API token
 client = InferenceClient(api_key=HF_TOKEN)
 
-async def generateAnswer(prompt: str) -> str:
+async def generateAnswer(system_prompt: str, user_prompt: str) -> str:
     # Example for text generation
     messages = [
-    {"role": "system", "content": "You are a helpful AI assistant that answers strictly from provided context."},
-    {"role": "user", "content": prompt}
+    {"role": "system", "content": system_prompt},
+    {"role": "user", "content": user_prompt}
     ]
     completion = client.chat.completions.create(
         model="deepseek-ai/DeepSeek-V3", 
