@@ -39,3 +39,4 @@ coverage.xml
 # Logs
 *.log
 qdrant_db/
+tests/

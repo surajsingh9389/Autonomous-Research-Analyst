@@ -42,14 +42,12 @@ vectorstore = QdrantVectorStore.from_documents(
 )
 
 # --- Async Helper ---
-async def get_hybrid_reranked_docs(query: str) -> List[SearchOutput]:   
+async def get_hybrid_reranked_docs(query: str, top_k: int = 3) -> List[SearchOutput]:   
     # ainvoke allows other graph tasks to run in parallel
-    initial_docs_with_score = await vectorstore.asimilarity_search_with_score(query, k=3)
+    initial_docs_with_score = await vectorstore.asimilarity_search_with_score(query, k=top_k)
     
     if not initial_docs_with_score:
         return []
-    
-    
     
     # Re-ranking
     
@@ -74,6 +72,6 @@ async def get_hybrid_reranked_docs(query: str) -> List[SearchOutput]:
     # Sort by rerank score
     final_output.sort(key=lambda x: x["rerank_score"], reverse=True)
     
-    # Return top 3 after sorting
-    return final_output[:3]
+    # Return top k docs after sorting by re-rank score
+    return final_output[:top_k]
 
