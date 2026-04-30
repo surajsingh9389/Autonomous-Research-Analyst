@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+raw_data.txt
 
 # Environments (Virtual Envs)
 .env

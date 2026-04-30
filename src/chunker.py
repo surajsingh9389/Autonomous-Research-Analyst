@@ -1,71 +1,69 @@
 from langchain_docling import DoclingLoader
-from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from typing import List
 import os
 import asyncio
 
-async def ingest_and_chunk_document(file_path: str) -> List[Document]:
-    """
-    Loads a document using Docling, converts to Markdown, and chunks 
-    while preserving header context.
-    """
-    
-    # Load document and convert to Markdown
-    # Docling is superior for preserving tables and headers
-    loader = DoclingLoader(file_path=file_path)
-    raw_docs = await loader.aload() # Usually returns 1 large Doc per file
-    
-    
-    print(raw_docs)
-    print("-"*50)
-    print('\n\n')
-    
-    # Split by Markdown Headers
-    # This ensures a chunk doesn't mix "Introduction" with "Conclusion"
-    headers_to_split_on = [
-        ("#", "Header_1"),
-        ("##", "Header_2"),
-        ("###", "Header_3"),
-    ]
-    
-    header_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=headers_to_split_on,
-        strip_headers=False # Keep the '#' symbols for the LLM to see structure
-    )
-    
-    # Hold chunks from ALL raw documents
-    all_semantic_chunks = []
-    
-    # Iterate through every document found by Docling
-    for doc in raw_docs:
-        # Split this specific document
-        chunks = header_splitter.split_text(doc.page_content)
-        # Add these chunks to our master list
-        all_semantic_chunks.extend(chunks)
 
+async def ingest_and_chunk_document(file_path: str) -> List[Document]:
     
-    print(all_semantic_chunks)
-    print("-"*50)
-    print('\n\n')
+    # Load the document using DoclingLoader
+    loader = DoclingLoader(file_path=file_path)
+    raw_docs = await loader.aload() 
     
-    # Sub-split large sections
-    # If a section is 5000 words, we break it down further
+    print("Raw Docs")
+    print(raw_docs)
+    print("__"*60)
+    print("\n")
+    
+    final_cleaned_chunks = []
+    
+    # Unique Chunk ID Counter
+    global_chunk_count = 0  
+    
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=300, 
-        chunk_overlap=50,
+        chunk_size=600,
+        chunk_overlap=100,
         separators=["\n\n", "\n", ".", " ", ""]
     )
     
-    final_chunks = text_splitter.split_documents(all_semantic_chunks)
-    
-    # Add the filename to metadata for your source tracking
-    for chunk in final_chunks:
-        chunk.metadata["file_name"] = os.path.basename(file_path)
+    for doc in raw_docs:
+        # Extract the essentials from the 'dirty' metadata
+        headings = doc.metadata.get("dl_meta", {}).get("headings", [])
+        breadcrumb = " > ".join(headings)
+        source_name = os.path.basename(file_path)
         
-    print(final_chunks)
-    
-    return final_chunks
+        # Split the document
+        sub_chunks = text_splitter.split_documents([doc])
+        
+        for chunk in sub_chunks:
+            # --- PURGE AND REBUILD METADATA ---
+            # We replace the bloated doc.metadata with a fresh, slim dictionary
+            clean_metadata = {
+                "source": source_name,
+                "chunk_id": global_chunk_count
+            }
+            
+            # Add headers as top-level keys for easy filtering
+            for idx, title in enumerate(headings):
+                clean_metadata[f"Header_{idx+1}"] = title
+            
+            # Apply the clean metadata to the chunk
+            chunk.metadata = clean_metadata
+            
+            # --- ENRICH CONTENT ---
+            # Prepend context to text for better vector search
+            if breadcrumb:
+                chunk.page_content = f"Context: {breadcrumb}\n\n{chunk.page_content}"
+                
+            final_cleaned_chunks.append(chunk)
+            global_chunk_count += 1
+            
+    print("Final Cleaned Chunks")
+    print(final_cleaned_chunks)
+
+    return final_cleaned_chunks
 
 
 # 3. Run the async loop
