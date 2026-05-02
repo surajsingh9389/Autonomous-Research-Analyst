@@ -1,6 +1,6 @@
 from langgraph.graph import StateGraph, START, END
-from ..core.state import AgentState
-from ..agents.researcher import (
+from core.state import AgentState
+from agents.researcher import (
     planner, retriever_node, generator, 
     critic, refiner, route_from_planner, should_continue
 )

@@ -1,7 +1,6 @@
 import asyncio
 from typing import List, Optional
-from pathlib import Path
-from ..core.state import RetrievedDoc
+from core.state import RetrievedDoc
 
 from langchain_qdrant import QdrantVectorStore, FastEmbedSparse, RetrievalMode
 from langchain_huggingface import HuggingFaceEmbeddings
