@@ -76,4 +76,7 @@ class VectorDBService:
             })
 
         final_output.sort(key=lambda x: x["rerank_score"], reverse=True)
+        print('-'*50)
+        print("Reranked Results:")
+        print(final_output)
         return final_output[:top_k]

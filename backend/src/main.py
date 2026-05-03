@@ -11,7 +11,7 @@ async def main():
     # 2. RUN THE AGENT
     print("\n--- Phase 2: Running Agentic Research ---")
     inputs = {
-        "query": "Summarize the project in the uploaded document.",
+        "query": "What is the server address for Alice's project? as per my document",
         "iteration": 0,
         "max_iterations": 3,
         "thoughts": []

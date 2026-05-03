@@ -94,8 +94,6 @@ async def critic(state: AgentState) -> AgentState:
     state["faithfulness_score"] = eval_data.get("faithfulness_score", 0.0)
     state["relevance_score"] = eval_data.get("relevance_score", 0.0)
     state["feedback"] = eval_data.get("feedback", "")
-    
-    print(f"faithfulness_score: {state['faithfulness_score']}, Relevance_score: {state['relevance_score']}, Feedback: {state['feedback']}")
 
     # Logic-based failure assignment
     if state["faithfulness_score"] < 0.7:
