@@ -1,5 +1,6 @@
-from services.ingestion import IngestionService
-from services.vector_db import VectorDBService
+import asyncio
+from backend.services.ingestion import IngestionService
+from backend.services.vector_db import VectorDBService
 
 # Create single instances to be shared across the app
 ingestor = IngestionService()
@@ -17,3 +18,6 @@ async def run_full_ingestion(file_path: str):
     vector_db.initialize_store(chunks)
     
     return f"Processed {len(chunks)} chunks from {file_path}"
+
+if __name__ == "__main__":
+    asyncio.run(run_full_ingestion("raw_data.txt"))
