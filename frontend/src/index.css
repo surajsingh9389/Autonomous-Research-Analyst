@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+@theme {
+  --animate-blink: blink 1s step-end infinite;
+  --animate-dot-pulse-0: dot-pulse 1.5s ease-in-out infinite 0s;
+  --animate-dot-pulse-1: dot-pulse 1.5s ease-in-out infinite 0.5s;
+  --animate-dot-pulse-2: dot-pulse 1.5s ease-in-out infinite 1s;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+@keyframes dot-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}

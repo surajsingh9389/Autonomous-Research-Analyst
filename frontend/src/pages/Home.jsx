@@ -1,6 +1,19 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router'
 
 const Home = () => {
+  const [query, setQuery] = useState('')
+  const navigate = useNavigate()
+
+  const handleSearch = (e) => {
+    e?.preventDefault()
+    if (!query.trim()) return
+    navigate('/response', { state: { query: query.trim() } })
+  }
+
+  const handleSuggestion = (text) => {
+    navigate('/response', { state: { query: text } })
+  }
   return (
     <div className="min-h-screen flex flex-col font-sans text-gray-900 bg-white">
       {/* Header */}
@@ -37,6 +50,9 @@ const Home = () => {
           </div>
           <input 
             type="text" 
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSearch(e)}
             placeholder="Ask anything or search your documents..." 
             className="flex-1 outline-none text-base text-gray-700 bg-transparent placeholder-gray-400 min-w-0"
           />
@@ -45,7 +61,7 @@ const Home = () => {
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
               Upload
             </button>
-            <button className="flex items-center gap-1.5 bg-[#7b9cce] hover:bg-[#6888bb] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors">
+            <button onClick={handleSearch} className="flex items-center gap-1.5 bg-[#7b9cce] hover:bg-[#6888bb] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors disabled:opacity-50" disabled={!query.trim()}>
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               Search
             </button>
@@ -55,13 +71,13 @@ const Home = () => {
         {/* Suggestions */}
         <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
           <span className="text-gray-500 text-sm">Try:</span>
-          <button className="bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm transition-colors">
+          <button onClick={() => handleSuggestion('Summarize my documents')} className="bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm transition-colors">
             Summarize my documents
           </button>
-          <button className="bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm transition-colors">
+          <button onClick={() => handleSuggestion('Find key insights')} className="bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm transition-colors">
             Find key insights
           </button>
-          <button className="bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm transition-colors">
+          <button onClick={() => handleSuggestion('Compare reports')} className="bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-sm transition-colors">
             Compare reports
           </button>
         </div>
